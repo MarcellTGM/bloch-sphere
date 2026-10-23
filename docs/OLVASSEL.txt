@@ -1,0 +1,47 @@
+BLOCH-GÖMB SZIMULÁTOR – 2026
+============================
+
+Futtatás Windows-on, telepítés nélkül
+-------------------------------------
+
+1. Kattints duplán az "Inditas.bat" fájlra.
+2. Megnyílik egy fekete ablak (ez a helyi webszerver), és a böngészőben
+   automatikusan betöltődik az alkalmazás:
+       http://localhost:8765/
+3. A szimulátor használata után egyszerűen zárd be a fekete ablakot
+   (ezzel a szerver leáll).
+
+Miért kell ez a kis indító?
+---------------------------
+A program Blazor WebAssembly technológiával készült. A böngészők biztonsági
+okból nem engedik, hogy egy webalkalmazás fájlrendszerből (file://) töltse be
+a saját moduljait, ezért kell egy helyi webszerver. Az Inditas.bat ehhez
+csak a Windows-ba épített PowerShellt használja – semmit nem kell telepíteni.
+
+Fontos: az "index.html" dupla kattintással NEM indul el (ezt a böngésző
+biztonsági szabálya okozza), mindig az "Inditas.bat"-tal indítsd!
+
+
+Alternatív indítás (ha van Python a gépen)
+------------------------------------------
+A mappában nyiss parancssort, majd:
+
+    python -m http.server 8000
+
+és nyisd meg: http://localhost:8000/
+
+
+Online változat
+---------------
+A szimulátor saját webhelyen is elérhető (GitHub Pages):
+    <IDE ÍRD A SAJÁT URL-T>
+
+
+Készítette
+----------
+Varga Marcell Simon, 2026
+
+A program a 2025-ben Varga Marcell Simon és Borvendég Benedek által készített
+Bloch-gömb szimulátor továbbfejlesztett változata (Kvantuminformatikai
+alkalmazások, BME). A korábbi változat dokumentációja az "elozmeny" mappában
+található a forráskód mellett.

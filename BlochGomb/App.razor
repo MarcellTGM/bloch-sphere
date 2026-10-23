@@ -1,0 +1,19 @@
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Az oldal nem található</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div style="max-width:720px;margin:80px auto;padding:24px;font-family:Segoe UI,sans-serif;">
+                <h1 style="font-size:22px;margin:0 0 8px;">Ez az oldal nem található</h1>
+                <p style="margin:0 0 16px;color:#8fa2bd;">
+                    A Bloch-gömb szimulátor a kezdőlapon érhető el.
+                </p>
+                <a href="" style="color:#38bdf8;">Vissza a kezdőlapra</a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
+
