@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @inject Services.QuantumService Quantum
 @inject IJSRuntime JS
 
@@ -6,322 +6,422 @@
 
 <div class="app-shell">
 
-    <header class="topbar">
-        <div class="brand">
-            <span class="logo">🌐</span>
-            <div>
-                <h1>Bloch-gömb szimulátor</h1>
-                <p class="subtitle">Egyqubites állapotok és kvantumkapuk interaktív szemléltetése</p>
-            </div>
+    <header class="app-header">
+        <div class="app-title">
+            <h1>Bloch-gömb szimulátor</h1>
+            <span class="sep">/</span>
+            <span class="context">Kvantuminformatikai alkalmazások · 2026</span>
         </div>
-        <div class="topbar-actions">
-            <span class="badge-version">2026</span>
-            <button class="ghost" @onclick="ToggleTheme" title="Világos / sötét téma">
-                @(darkMode ? "☀️ Világos" : "🌙 Sötét")
-            </button>
-            <button class="ghost" @onclick="@(() => showHelp = !showHelp)" title="Súgó és képletek">
-                ❓ Súgó
+
+        <div class="app-actions">
+            <div class="segmented" role="group" aria-label="Színtéma">
+                <button aria-pressed="@(darkMode ? "true" : "false")" @onclick="@(() => SetTheme(true))">
+                    @Ico(IcMoon) Sötét
+                </button>
+                <button aria-pressed="@(darkMode ? "false" : "true")" @onclick="@(() => SetTheme(false))">
+                    @Ico(IcSun) Világos
+                </button>
+            </div>
+            <button class="btn btn-ghost" @onclick="@(() => showHelp = true)">
+                @Ico(IcHelp) Súgó
             </button>
         </div>
     </header>
 
-    <main class="layout">
+    <main class="workspace">
 
-        <!-- ==================== VEZÉRLŐK ==================== -->
-        <section class="controls">
+        <!-- ==================== VEZÉRLŐ PANEL ==================== -->
+        <section class="panel control-panel">
 
-            <!-- Kezdőállapot -->
-            <article class="card">
-                <header class="card-head">
-                    <h2>📍 Kezdőállapot</h2>
-                    <span class="hint">|ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup>sin(θ/2)|1⟩</span>
-                </header>
+            <div class="tabs" role="tablist" aria-label="Vezérlők">
+                <button class="tab" role="tab"
+                        aria-selected="@(activeTab == "state" ? "true" : "false")"
+                        @onclick="@(() => activeTab = "state")">Kezdőállapot</button>
+                <button class="tab" role="tab"
+                        aria-selected="@(activeTab == "gates" ? "true" : "false")"
+                        @onclick="@(() => activeTab = "gates")">Kapuk</button>
+                <button class="tab" role="tab"
+                        aria-selected="@(activeTab == "saved" ? "true" : "false")"
+                        @onclick="@(() => activeTab = "saved")">Mentés</button>
+                <button class="tab" role="tab"
+                        aria-selected="@(activeTab == "demos" ? "true" : "false")"
+                        @onclick="@(() => activeTab = "demos")">Bemutatók</button>
+            </div>
 
-                <div class="preset-grid">
-                    @foreach (var preset in Presets)
-                    {
-                        <button class="preset" @onclick="@(() => ApplyPreset(preset))" title="@preset.Title">
-                            @preset.Label
-                        </button>
-                    }
-                </div>
-
-                <div class="slider-row">
-                    <label for="theta">θ <span class="muted">(0 … π)</span></label>
-                    <input id="theta" type="range" min="0" max="@Pi" step="0.01" @bind="theta" @bind:event="oninput" />
-                    <input class="num" type="number" min="0" max="@Pi" step="0.01" @bind="theta" />
-                    <span class="muted unit">@Deg(theta)°</span>
-                </div>
-
-                <div class="slider-row">
-                    <label for="phi">φ <span class="muted">(0 … 2π)</span></label>
-                    <input id="phi" type="range" min="0" max="@TwoPi" step="0.01" @bind="phi" @bind:event="oninput" />
-                    <input class="num" type="number" min="0" max="@TwoPi" step="0.01" @bind="phi" />
-                    <span class="muted unit">@Deg(phi)°</span>
-                </div>
-
-                <div class="btn-row">
-                    <button class="primary" @onclick="ApplyState">Állapot beállítása</button>
-                    <button class="ghost" @onclick="@(() => ApplyPreset(Presets[0]))">Vissza |0⟩-ra</button>
-                </div>
-
-                <div class="state-line">
-                    <code>@Quantum.FormatState()</code>
-                </div>
-            </article>
-
-            <!-- Kapuk -->
-            <article class="card">
-                <header class="card-head">
-                    <h2>🔧 Kapuk</h2>
-                    <span class="hint">kattints a sorba illesztéshez</span>
-                </header>
-
-                <div class="gate-grid">
-                    @foreach (var gate in Services.QuantumService.GateLibrary)
-                    {
-                        <button class="gate @(selectedGate == gate.Name ? "gate-active" : "")"
-                                data-key="@(gate.Name.Length == 1 ? gate.Name : null)"
-                                title="@($"{gate.Category} · {gate.Description} Mátrix: {gate.Matrix}")"
-                                @onclick="@(() => AddGate(gate))">
-                            <span class="gate-symbol">@gate.Symbol</span>
-                            <span class="gate-cat">@gate.Category</span>
-                        </button>
-                    }
-                </div>
-
-                <div class="slider-row angle-row">
-                    <label for="angle">Forgatási szög</label>
-                    <input id="angle" type="range" min="-360" max="360" step="1" @bind="angleDeg" @bind:event="oninput" />
-                    <input class="num" type="number" min="-360" max="360" step="1" @bind="angleDeg" />
-                    <span class="muted unit">°</span>
-                </div>
-                <div class="btn-row small">
-                    <button class="chip" @onclick="@(() => angleDeg = 45)">45°</button>
-                    <button class="chip" @onclick="@(() => angleDeg = 90)">90°</button>
-                    <button class="chip" @onclick="@(() => angleDeg = 180)">180°</button>
-                    <button class="chip" @onclick="@(() => angleDeg = -90)">−90°</button>
-                    <span class="muted">= @((angleDeg * Math.PI / 180).ToString("0.###")) rad</span>
-                </div>
-
-                <div class="circuit-label">Áramkör <span class="muted">(@Quantum.GateSequence.Count kapu)</span></div>
-                <div class="circuit">
-                    @if (Quantum.GateSequence.Count == 0)
-                    {
-                        <span class="muted">üres – adj hozzá kaput a palettáról</span>
-                    }
-                    else
-                    {
-                        <span class="circuit-start">|ψ⟩</span>
-                        @foreach (var gate in Quantum.GateSequence.ToArray())
-                        {
-                            <button class="gate-chip" title="Eltávolítás" @onclick="@(() => RemoveGate(gate))">
-                                @GateLabel(gate)<span class="x">×</span>
-                            </button>
-                        }
-                    }
-                </div>
-
-                <div class="btn-row">
-                    <button class="primary" @onclick="StepOnce" data-key="ENTER" title="Enter">▶ Léptetés</button>
-                    <button class="primary" @onclick="RunAll" title="Az összes hátralévő kapu">⏩ Végrehajtás</button>
-                    <button class="ghost" @onclick="UndoGate" data-key="BACKSPACE" title="Backspace: utolsó kapu visszavonása">↩ Visszavonás</button>
-                    <button class="danger" @onclick="ClearCircuit">🗑 Sor törlése</button>
-                </div>
-
-                @if (Quantum.AppliedGates.Count > 0)
-                {
-                    <div class="circuit-label">
-                        Végrehajtva <span class="muted">(@Quantum.AppliedGates.Count kapu)</span>
-                    </div>
-                    <div class="applied-row">
-                        @foreach (var gate in Quantum.AppliedGates.ToArray())
-                        {
-                            <span class="applied-chip">@GateLabel(gate)</span>
-                        }
-                    </div>
-                }
-            </article>
-
-            <!-- Pillanatképek -->
-            <article class="card">
-                <header class="card-head">
-                    <h2>📸 Pillanatképek</h2>
-                    <span class="hint">több állapot egyszerre a gömbön</span>
-                </header>
-
-                <div class="snap-form">
-                    <input type="text" @bind="snapLabel" placeholder="Azonosító (pl. Kiindulás)" />
-                    <input type="color" @bind="snapColor" title="Szín" />
-                    <button class="primary" @onclick="SaveSnapshot">Mentés</button>
-                </div>
-
-                <div class="toggle-row">
-                    <label class="switch">
-                        <input type="checkbox" @bind="showTrail" @bind:after="SyncNow" />
-                        <span>Nyomvonal mutatása</span>
-                    </label>
-                    <label class="switch">
-                        <input type="checkbox" @bind="animate" @bind:after="SyncNow" />
-                        <span>Animáció</span>
-                    </label>
-                </div>
-
-                <div class="snap-list">
-                    @if (Quantum.Snapshots.Count == 0)
-                    {
-                        <span class="muted">még nincs mentett állapot</span>
-                    }
-                    else
-                    {
-                        @foreach (var snap in Quantum.Snapshots.ToArray())
-                        {
-                            <div class="snap-item">
-                                <span class="dot" style="background:@snap.Color"></span>
-                                <span class="snap-label">@snap.Label</span>
-                                <code class="snap-coords">(@Coord(snap.X), @Coord(snap.Y), @Coord(snap.Z))</code>
-                                <button class="icon-btn" title="Törlés" @onclick="@(() => DeleteSnapshot(snap))">✕</button>
-                            </div>
-                        }
-                        <button class="ghost small" @onclick="ClearSnapshots">Összes törlése</button>
-                    }
-                </div>
-            </article>
-
-            <!-- Bemutatók + önteszt -->
-            <article class="card">
-                <header class="card-head">
-                    <h2>🎬 Bemutatók</h2>
-                    <span class="hint">egy kattintás, kész áramkör</span>
-                </header>
-
-                <div class="demo-list">
-                    @foreach (var demo in Demos)
-                    {
-                        <button class="demo" @onclick="@(() => RunDemo(demo))" title="@demo.Description">
-                            <strong>@demo.Title</strong>
-                            <span>@demo.Description</span>
-                        </button>
-                    }
-                </div>
-
-                <div class="btn-row">
-                    <button class="ghost" @onclick="Measure">🎲 Mérés (Z)</button>
-                    <button class="ghost" @onclick="RunSelfTest">✅ Önteszt</button>
-                </div>
-
-                @if (!string.IsNullOrEmpty(measurementInfo))
-                {
-                    <div class="info-line">@measurementInfo</div>
-                }
-
-                @if (selfTestResults != null)
-                {
-                    <div class="selftest">
-                        <div class="selftest-head">
-                            @selfTestResults.Count(r => r.Passed) / @selfTestResults.Count teszt sikeres
+            @if (activeTab == "state")
+            {
+                <div class="panel-body">
+                    <div class="panel-section">
+                        <span class="section-label">Nevezetes állapotok</span>
+                        <div class="preset-grid">
+                            @foreach (var preset in Presets)
+                            {
+                                <button class="preset" @onclick="@(() => ApplyPreset(preset))" title="@preset.Title">
+                                    @preset.Label
+                                </button>
+                            }
                         </div>
-                        @foreach (var result in selfTestResults)
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="field">
+                            <label for="theta">θ polárszög <span class="range-note">0 … π</span></label>
+                            <span class="unit">@Deg(theta)°</span>
+                            <input id="theta" class="range" type="range" min="0" max="@Pi" step="0.005"
+                                   @bind="theta" @bind:event="oninput" />
+                            <input class="num" type="number" min="0" max="@Pi" step="0.005" @bind="theta" />
+                        </div>
+
+                        <div class="field">
+                            <label for="phi">φ azimutszög <span class="range-note">0 … 2π</span></label>
+                            <span class="unit">@Deg(phi)°</span>
+                            <input id="phi" class="range" type="range" min="0" max="@TwoPi" step="0.005"
+                                   @bind="phi" @bind:event="oninput" />
+                            <input class="num" type="number" min="0" max="@TwoPi" step="0.005" @bind="phi" />
+                        </div>
+
+                        <p class="formula">|ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup> sin(θ/2)|1⟩</p>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-primary" @onclick="ApplyState">Állapot beállítása</button>
+                        <button class="btn" @onclick="ResetToZero">|0⟩ visszaállítása</button>
+                    </div>
+                </div>
+            }
+            else if (activeTab == "gates")
+            {
+                <div class="panel-body">
+                    <div class="panel-section">
+                        <span class="section-label">Kapupaletta</span>
+
+                        <div class="gate-groups">
+                            @foreach (var group in GateGroups)
+                            {
+                                <div class="gate-group">
+                                    <span class="gate-group-label">@group.Title</span>
+                                    <div class="gate-grid">
+                                        @foreach (var gate in group.Gates)
+                                        {
+                                            <button class="gate @(selectedGate == gate.Name ? "is-active" : "")"
+                                                    data-key="@(gate.Name.Length == 1 ? gate.Name : null)"
+                                                    title="@($"{gate.Name} – {gate.Description} Mátrix: {gate.Matrix}")"
+                                                    @onclick="@(() => AddGate(gate))">
+                                                @gate.Symbol
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="angle-row">
+                            <label for="angle">Forgatási szög</label>
+                            <input id="angle" type="range" min="-360" max="360" step="1"
+                                   @bind="angleDeg" @bind:event="oninput" />
+                            <input class="num" type="number" min="-360" max="360" step="1" @bind="angleDeg" />
+                        </div>
+
+                        <div class="quick-row">
+                            <button class="btn" @onclick="@(() => angleDeg = 45)">45°</button>
+                            <button class="btn" @onclick="@(() => angleDeg = 90)">90°</button>
+                            <button class="btn" @onclick="@(() => angleDeg = 180)">180°</button>
+                            <button class="btn" @onclick="@(() => angleDeg = -90)">−90°</button>
+                            <span class="readback">@((angleDeg * System.Math.PI / 180).ToString("0.###")) rad</span>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="circuit-head">
+                            <span class="section-label">Áramkör</span>
+                            <span class="count">@Quantum.GateSequence.Count kapu</span>
+                        </div>
+
+                        <div class="circuit">
+                            @if (Quantum.GateSequence.Count == 0)
+                            {
+                                <span class="circuit-empty">A palettáról hozzáadott kapuk itt jelennek meg.</span>
+                            }
+                            else
+                            {
+                                <span class="circuit-start">|ψ⟩</span>
+                                @foreach (var gate in Quantum.GateSequence.ToArray())
+                                {
+                                    <span class="gate-chip">
+                                        @GateLabel(gate)
+                                        <button title="Eltávolítás" @onclick="@(() => RemoveGate(gate))">
+                                            @Ico(IcClose, 11)
+                                        </button>
+                                    </span>
+                                }
+                            }
+                        </div>
+
+                        <div class="btn-row" style="margin-top: 8px;">
+                            <button class="btn btn-primary" @onclick="StepOnce" data-key="ENTER" title="Enter">
+                                @Ico(IcPlay) Léptetés
+                            </button>
+                            <button class="btn" @onclick="RunAll" title="Az összes hátralévő kapu">
+                                @Ico(IcSkip) Végrehajtás
+                            </button>
+                            <button class="btn btn-ghost" @onclick="UndoGate" data-key="BACKSPACE" title="Backspace">
+                                @Ico(IcUndo) Visszavonás
+                            </button>
+                            <button class="btn btn-danger" @onclick="ClearCircuit">
+                                @Ico(IcTrash) Törlés
+                            </button>
+                        </div>
+
+                        @if (Quantum.AppliedGates.Count > 0)
                         {
-                            <div class="selftest-row @(result.Passed ? "ok" : "fail")">
-                                <span class="mark">@(result.Passed ? "✓" : "✗")</span>
-                                <span class="name">@result.Name</span>
-                                <span class="detail">@result.Detail</span>
+                            <div class="applied-row">
+                                <span class="section-label" style="margin: 0 6px 0 0;">Végrehajtva</span>
+                                @foreach (var gate in Quantum.AppliedGates.ToArray())
+                                {
+                                    <span class="applied-chip">@GateLabel(gate)</span>
+                                }
                             </div>
                         }
                     </div>
-                }
-            </article>
+                </div>
+            }
+            else if (activeTab == "saved")
+            {
+                <div class="panel-body">
+                    <div class="panel-section">
+                        <span class="section-label">Új pillanatkép</span>
+                        <div class="snapshot-form">
+                            <input type="text" @bind="snapLabel" placeholder="Azonosító, pl. |+⟩" />
+                            <input type="color" @bind="snapColor" title="Jelölő színe" />
+                            <button class="btn btn-primary" @onclick="SaveSnapshot">
+                                @Ico(IcSave) Mentés
+                            </button>
+                        </div>
+                        <p class="section-note" style="margin-top: 8px;">
+                            A mentett állapotok jelölőként megjelennek a gömbön, így a kezdő-, köztes-
+                            és végállapot egyszerre látható.
+                        </p>
+                    </div>
+
+                    <div class="panel-section">
+                        <label class="checkbox">
+                            <input type="checkbox" @bind="showTrail" @bind:after="SyncNow" />
+                            Bejárt út nyomvonalának mutatása
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" @bind="animate" @bind:after="SyncNow" />
+                            Állapotvektor mozgatásának animálása
+                        </label>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="circuit-head">
+                            <span class="section-label">Mentett állapotok</span>
+                            <span class="count">@Quantum.Snapshots.Count db</span>
+                        </div>
+
+                        @if (Quantum.Snapshots.Count == 0)
+                        {
+                            <p class="section-note">Még nincs mentett állapot.</p>
+                        }
+                        else
+                        {
+                            <div class="snapshot-list">
+                                @foreach (var snap in Quantum.Snapshots.ToArray())
+                                {
+                                    <div class="snapshot-row">
+                                        <span class="dot" style="background:@snap.Color"></span>
+                                        <span class="label">@snap.Label</span>
+                                        <code class="coords">(@Coord(snap.X), @Coord(snap.Y), @Coord(snap.Z))</code>
+                                        <button class="btn btn-ghost btn-icon btn-sm" title="Törlés"
+                                                @onclick="@(() => DeleteSnapshot(snap))">
+                                            @Ico(IcClose, 12)
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                            <div class="btn-row" style="margin-top: 8px;">
+                                <button class="btn btn-ghost btn-sm" @onclick="ClearSnapshots">Összes törlése</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="panel-body">
+                    <div class="panel-section">
+                        <span class="section-label">Előkészített áramkörök</span>
+                        <div class="demo-list">
+                            @foreach (var demo in Demos)
+                            {
+                                <button class="demo" @onclick="@(() => RunDemo(demo))" title="@demo.Description">
+                                    <span>
+                                        <span class="demo-title">@demo.Title</span>
+                                        <span class="demo-meta" style="display: block;">@demo.Description</span>
+                                    </span>
+                                    <span class="run">futtatás</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <span class="section-label">Eszközök</span>
+                        <div class="btn-row">
+                            <button class="btn" @onclick="Measure">@Ico(IcTarget) Mérés (Z-bázis)</button>
+                            <button class="btn" @onclick="RunSelfTest">@Ico(IcCheck) Önteszt futtatása</button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(measurementInfo))
+                        {
+                            <div class="status-line">@measurementInfo</div>
+                        }
+
+                        @if (selfTestResults != null)
+                        {
+                            <div class="selftest">
+                                <div class="selftest-summary">
+                                    <span class="ok-count">@selfTestResults.Count(r => r.Passed)</span>
+                                    <span>/ @selfTestResults.Count teszt sikeres</span>
+                                </div>
+                                <div class="selftest-list">
+                                    @foreach (var result in selfTestResults)
+                                    {
+                                        <div class="selftest-row @(result.Passed ? "ok" : "fail")">
+                                            <span class="mark">@(result.Passed ? "✓" : "✗")</span>
+                                            <span class="name">@result.Name</span>
+                                            <span class="detail">@result.Detail</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </section>
 
-        <!-- ==================== GÖMB ==================== -->
-        <section class="viz">
-            <div class="viz-head">
-                <div>
+        <!-- ==================== GÖMB NÉZET ==================== -->
+        <section class="panel view-panel">
+            <div class="view-header">
+                <div class="view-heading">
                     <h2>Bloch-gömb</h2>
-                    <p class="hint">húzd az egérrel: forgatás · görgő: nagyítás</p>
+                    <span class="meta">3D · interaktív</span>
                 </div>
-                <div class="viz-actions">
-                    <button class="ghost small" @onclick="ResetView">⟲ Nézet</button>
-                    <button class="ghost small" @onclick="ExportPng">⬇ PNG</button>
+                <div class="view-tools">
+                    <button class="btn btn-ghost btn-sm" @onclick="ResetView" title="Kamera visszaállítása">
+                        @Ico(IcReset, 14) Nézet
+                    </button>
+                    <button class="btn btn-ghost btn-sm" @onclick="ExportPng" title="Kép mentése PNG-ben">
+                        @Ico(IcDownload, 14) PNG
+                    </button>
                 </div>
             </div>
 
-            <div id="sphere" class="sphere"></div>
+            <div class="view-body">
+                <div id="sphere" class="sphere"></div>
 
-            <div class="readouts">
-                <div class="readout"><span>θ</span><strong>@ThetaDeg()°</strong></div>
-                <div class="readout"><span>φ</span><strong>@PhiDeg()°</strong></div>
-                <div class="readout"><span>x</span><strong>@Coord(GetVector().x)</strong></div>
-                <div class="readout"><span>y</span><strong>@Coord(GetVector().y)</strong></div>
-                <div class="readout"><span>z</span><strong>@Coord(GetVector().z)</strong></div>
-                <div class="readout"><span>‖ψ‖</span><strong>@Quantum.GetNorm().ToString("0.000000")</strong></div>
-            </div>
+                <code class="state-line">@Quantum.FormatState()</code>
 
-            <div class="prob-wrap">
-                <div class="prob">
-                    <div class="prob-head"><span>P(|0⟩)</span><strong>@P0Percent()%</strong></div>
-                    <div class="bar"><div class="bar-fill zero" style="width:@P0Percent()%"></div></div>
+                <div class="readouts">
+                    <div class="readout"><span class="k">θ</span><span class="v">@ThetaDeg()°</span></div>
+                    <div class="readout"><span class="k">φ</span><span class="v">@PhiDeg()°</span></div>
+                    <div class="readout"><span class="k">x</span><span class="v">@Coord(GetVector().x)</span></div>
+                    <div class="readout"><span class="k">y</span><span class="v">@Coord(GetVector().y)</span></div>
+                    <div class="readout"><span class="k">z</span><span class="v">@Coord(GetVector().z)</span></div>
+                    <div class="readout"><span class="k">‖ψ‖</span><span class="v">@Quantum.GetNorm().ToString("0.000000")</span></div>
                 </div>
-                <div class="prob">
-                    <div class="prob-head"><span>P(|1⟩)</span><strong>@P1Percent()%</strong></div>
-                    <div class="bar"><div class="bar-fill one" style="width:@P1Percent()%"></div></div>
+
+                <div class="probabilities">
+                    <div>
+                        <div class="prob-head"><span>P(|0⟩)</span><span class="value">@P0Display()%</span></div>
+                        <div class="track"><div class="fill" style="width:@P0Percent()%"></div></div>
+                    </div>
+                    <div>
+                        <div class="prob-head"><span>P(|1⟩)</span><span class="value">@P1Display()%</span></div>
+                        <div class="track"><div class="fill alt" style="width:@P1Percent()%"></div></div>
+                    </div>
                 </div>
+
+                <p class="view-hint">
+                    Forgatás húzással, nagyítás görgővel. A kapuk a bal oldali „Kapuk” fülön érhetők el.
+                </p>
             </div>
         </section>
     </main>
 
-    <footer class="footer">
-        <p>Bloch-gömb szimulátor · 2026 · Készítette: <strong>Varga Marcell Simon</strong></p>
-        <p class="muted">
-            A 2025-ös, Varga Marcell Simon és Borvendég Benedek által készített szimulátor
-            továbbfejlesztett változata.
-        </p>
+    <footer class="app-footer">
+        <span><strong>Bloch-gömb szimulátor</strong> · Varga Marcell Simon · 2026</span>
+        <span>A 2025-ös, Varga Marcell Simon és Borvendég Benedek által készített szimulátor továbbfejlesztett változata.</span>
     </footer>
 
     @if (showHelp)
     {
         <div class="overlay" @onclick="@(() => showHelp = false)">
-            <div class="modal" @onclick:stopPropagation="true">
-                <h2>Súgó</h2>
+            <div class="dialog" role="dialog" aria-modal="true" aria-label="Súgó"
+                 @onclick:stopPropagation="true">
+                <div class="dialog-header">
+                    <h2>Súgó</h2>
+                    <button class="btn btn-ghost btn-icon btn-sm" @onclick="@(() => showHelp = false)"
+                            title="Bezárás">
+                        @Ico(IcClose, 14)
+                    </button>
+                </div>
 
-                <h3>Használat</h3>
-                <ol>
-                    <li>Válassz kezdőállapotot (gyorsgombok vagy θ/φ csúszka), majd „Állapot beállítása”.</li>
-                    <li>Kattints a kapukra – ezek bekerülnek az áramkörbe. Forgatási kapunál állítsd be a szöget.</li>
-                    <li>„Léptetés” = egy kapu, „Végrehajtás” = az összes hátralévő kapu.</li>
-                    <li>Ments pillanatképeket: így több állapot látszik egyszerre a gömbön.</li>
-                </ol>
+                <div class="dialog-body">
+                    <h3>Használat</h3>
+                    <ol>
+                        <li>A „Kezdőállapot” fülön válassz nevezetes állapotot, vagy állítsd be θ és φ értékét.</li>
+                        <li>A „Kapuk” fülön kattints a kapukra: ezek bekerülnek az áramkörbe. Forgatásnál állítsd be a szöget.</li>
+                        <li>„Léptetés” = egy kapu végrehajtása, „Végrehajtás” = az összes hátralévő kapu.</li>
+                        <li>A „Mentés” fülön pillanatképeket készíthetsz: így több állapot látszik egyszerre.</li>
+                    </ol>
 
-                <h3>Képletek</h3>
-                <p><code>|ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup>·sin(θ/2)|1⟩</code></p>
-                <p><code>x = 2·Re(αβ*)</code>, <code>y = −2·Im(αβ*)</code>, <code>z = |α|² − |β|²</code></p>
-                <p><code>P(|0⟩) = |α|²</code>, <code>P(|1⟩) = |β|²</code></p>
+                    <h3>Jelölések</h3>
+                    <p>
+                        <code>|ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup> sin(θ/2)|1⟩</code><br />
+                        <code>x = 2·Re(αβ*)</code>, <code>y = −2·Im(αβ*)</code>, <code>z = |α|² − |β|²</code><br />
+                        <code>P(|0⟩) = |α|²</code>, <code>P(|1⟩) = |β|²</code>
+                    </p>
 
-                <h3>Billentyűparancsok</h3>
-                <p><kbd>I</kbd> <kbd>X</kbd> <kbd>Y</kbd> <kbd>Z</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>T</kbd> – kapu hozzáadása ·
-                   <kbd>Enter</kbd> – léptetés · <kbd>Backspace</kbd> – visszavonás</p>
+                    <h3>Billentyűparancsok</h3>
+                    <p>
+                        <kbd>I</kbd> <kbd>X</kbd> <kbd>Y</kbd> <kbd>Z</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>T</kbd>
+                        – kapu hozzáadása ·
+                        <kbd>Enter</kbd> – léptetés ·
+                        <kbd>Backspace</kbd> – visszavonás
+                    </p>
 
-                <h3>Névek</h3>
-                <p><code>Rx(θ)</code>, <code>Ry(θ)</code>, <code>Rz(θ)</code>: forgatás a megfelelő tengely körül.
-                   A θ a csúszkával <b>fokban</b> adható meg, a program radiánban számol.</p>
+                    <h3>Forgatási kapuk</h3>
+                    <p>
+                        Az <code>Rx(θ)</code>, <code>Ry(θ)</code>, <code>Rz(θ)</code> a megfelelő tengely körül
+                        forgat. A szög fokban adható meg; a program radiánban számol.
+                    </p>
+                </div>
 
-                <button class="primary" @onclick="@(() => showHelp = false)">Bezárás</button>
+                <div class="dialog-footer">
+                    <button class="btn btn-primary" @onclick="@(() => showHelp = false)">Bezárás</button>
+                </div>
             </div>
         </div>
     }
 </div>
 
 @code {
-    private const double Pi = Math.PI;
-    private const double TwoPi = 2 * Math.PI;
+    private const double Pi = System.Math.PI;
+    private const double TwoPi = 2 * System.Math.PI;
 
+    // ---- állapot ----
+    private string activeTab = "state";
     private double theta;
     private double phi;
     private string selectedGate = "H";
     private double angleDeg = 90;
     private string snapLabel = "";
-    private string snapColor = "#f59e0b";
+    private string snapColor = "#4c8dff";
     private bool showTrail = true;
     private bool animate = true;
     private bool darkMode = true;
@@ -329,9 +429,9 @@
     private bool initialized;
     private string measurementInfo = "";
     private List<Services.SelfTestResult>? selfTestResults;
-
     private readonly Random rng = new();
 
+    // ---- adatok ----
     private record Preset(string Label, double Theta, double Phi, string Title);
 
     private static readonly Preset[] Presets =
@@ -358,6 +458,37 @@
         new("Mérés szuperpozícióban", "H után mérd meg: 50–50% esély, összeomlás", 0, 0, new[] { ("H", 0.0) })
     };
 
+    private record GateGroup(string Title, Services.GateDescriptor[] Gates);
+
+    private static readonly GateGroup[] GateGroups =
+    {
+        new("Pauli", Services.QuantumService.GateLibrary.Where(g => g.Category == "Pauli").ToArray()),
+        new("Speciális", Services.QuantumService.GateLibrary
+            .Where(g => g.Category is "Speciális" or "Fázis").ToArray()),
+        new("Forgatás", Services.QuantumService.GateLibrary.Where(g => g.Category == "Forgatás").ToArray())
+    };
+
+    // ---- sematikus ikonok (emoji helyett) ----
+    private static MarkupString Ico(string inner, int size = 16) =>
+        new($"<svg class=\"ico\" width=\"{size}\" height=\"{size}\" viewBox=\"0 0 16 16\" fill=\"none\" " +
+            "stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" " +
+            $"aria-hidden=\"true\" focusable=\"false\">{inner}</svg>");
+
+    private const string IcSun = "<circle cx=\"8\" cy=\"8\" r=\"2.7\"/><path d=\"M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1\"/>";
+    private const string IcMoon = "<path d=\"M13.3 9.5A5.7 5.7 0 0 1 6.5 2.7 5.8 5.8 0 1 0 13.3 9.5Z\"/>";
+    private const string IcHelp = "<circle cx=\"8\" cy=\"8\" r=\"5.9\"/><path d=\"M6.2 6.2a1.9 1.9 0 1 1 3.2 1.5c-.6.5-1.4.8-1.4 1.8\"/><circle cx=\"8\" cy=\"11.5\" r=\"0.55\" fill=\"currentColor\" stroke=\"none\"/>";
+    private const string IcPlay = "<path d=\"M4.9 3.5v9L12.3 8 4.9 3.5Z\"/>";
+    private const string IcSkip = "<path d=\"M4.2 3.5v9L10.4 8 4.2 3.5Z\"/><path d=\"M12 3.5v9\"/>";
+    private const string IcUndo = "<path d=\"M5.6 4.6 3 7.2l2.6 2.6\"/><path d=\"M3 7.2h5.2a3.5 3.5 0 1 1 0 7H6.4\"/>";
+    private const string IcTrash = "<path d=\"M3 4.9h10\"/><path d=\"M6.3 4.9V3.5h3.4v1.4\"/><path d=\"M4.7 4.9l.5 8.1h5.6l.5-8.1\"/>";
+    private const string IcSave = "<path d=\"M4.1 2.9h7.8v10.2L8 10.6l-3.9 2.5V2.9Z\"/>";
+    private const string IcDownload = "<path d=\"M8 2.7v7\"/><path d=\"M5.5 7.3 8 9.8l2.5-2.5\"/><path d=\"M3.1 13.1h9.8\"/>";
+    private const string IcReset = "<path d=\"M12.8 8a4.8 4.8 0 1 1-1.4-3.4\"/><path d=\"M12.9 2.9v2.7h-2.7\"/>";
+    private const string IcCheck = "<path d=\"M3.3 8.5 6.5 11.7 12.7 4.7\"/>";
+    private const string IcTarget = "<circle cx=\"8\" cy=\"8\" r=\"5.1\"/><circle cx=\"8\" cy=\"8\" r=\"1.5\"/><path d=\"M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8\"/>";
+    private const string IcClose = "<path d=\"M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5\"/>";
+
+    // ---- életciklus ----
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -370,8 +501,7 @@
         await Sync(false);
     }
 
-    // ---------------- JS szinkron ----------------
-
+    // ---- JS szinkron ----
     private async Task Sync(bool withAnimation)
     {
         if (!initialized) return;
@@ -407,15 +537,14 @@
 
     private void SyncNow() => _ = Sync(false);
 
-    private async Task ToggleTheme()
+    private async Task SetTheme(bool dark)
     {
-        darkMode = !darkMode;
-        await JS.InvokeVoidAsync("blochgomb.setTheme", darkMode ? "dark" : "light");
+        darkMode = dark;
+        await JS.InvokeVoidAsync("blochgomb.setTheme", dark ? "dark" : "light");
         await Sync(false);
     }
 
-    // ---------------- Kezdőállapot ----------------
-
+    // ---- kezdőállapot ----
     private async Task ApplyState()
     {
         Quantum.ResetState(theta, phi);
@@ -432,8 +561,16 @@
         await Sync(false);
     }
 
-    // ---------------- Kapuk ----------------
+    private async Task ResetToZero()
+    {
+        theta = 0;
+        phi = 0;
+        Quantum.ResetState(0, 0);
+        measurementInfo = "";
+        await Sync(false);
+    }
 
+    // ---- kapuk ----
     private void AddGate(Services.GateDescriptor gate)
     {
         selectedGate = gate.Name;
@@ -441,10 +578,7 @@
         Quantum.AddGate(gate.Name, radians);
     }
 
-    private void RemoveGate(Services.GateOperation gate)
-    {
-        Quantum.GateSequence.Remove(gate);
-    }
+    private void RemoveGate(Services.GateOperation gate) => Quantum.GateSequence.Remove(gate);
 
     private string GateLabel(Services.GateOperation gate) =>
         Services.QuantumService.IsRotation(gate.Name)
@@ -465,8 +599,8 @@
 
     private async Task UndoGate()
     {
-        // Ha van még nem végrehajtott kapu, azt vesszük vissza; különben az
-        // utoljára végrehajtott kaput vonjuk vissza az inverz mátrixszal.
+        // Ha van függő kapu, azt vesszük vissza; különben az utoljára
+        // végrehajtott kaput vonjuk vissza az inverz (adjungált) mátrixszal.
         if (Quantum.RemoveLastGate())
         {
             return;
@@ -479,8 +613,7 @@
 
     private void ClearCircuit() => Quantum.ClearSequence();
 
-    // ---------------- Pillanatképek ----------------
-
+    // ---- pillanatképek ----
     private async Task SaveSnapshot()
     {
         Quantum.SaveSnapshot(snapLabel, snapColor);
@@ -500,8 +633,7 @@
         await Sync(false);
     }
 
-    // ---------------- Bemutatók, mérés, önteszt ----------------
-
+    // ---- bemutatók, mérés, önteszt ----
     private async Task RunDemo(Demo demo)
     {
         theta = demo.Theta;
@@ -519,20 +651,18 @@
     private async Task Measure()
     {
         var (result, p0, p1) = Quantum.MeasureZ(rng);
-        measurementInfo = $"Mérés eredménye: |{result}⟩ · P(|0⟩) = {p0:P1}, P(|1⟩) = {p1:P1} – az állapot összeomlott.";
+        measurementInfo = $"Mérés eredménye |{result}⟩ · P(|0⟩) = {p0:P1}, P(|1⟩) = {p1:P1} – az állapot összeomlott.";
         await Sync(true);
     }
 
     private void RunSelfTest() => selfTestResults = Services.QuantumSelfTest.Run();
 
-    // ---------------- Nézet ----------------
-
+    // ---- nézet ----
     private async Task ResetView() => await JS.InvokeVoidAsync("blochgomb.resetView");
 
     private async Task ExportPng() => await JS.InvokeVoidAsync("blochgomb.exportPng", "bloch-gomb");
 
-    // ---------------- Megjelenítési segédek ----------------
-
+    // ---- megjelenítési segédek ----
     private (double x, double y, double z) GetVector() => Quantum.GetBlochVector(Quantum.CurrentState);
 
     private string Deg(double radians) => (radians * 180 / Pi).ToString("0.0");
@@ -543,14 +673,23 @@
 
     private static string FormatDegrees(double degrees)
     {
-        double rounded = Math.Round(degrees, 1);
-        if (rounded >= 359.95 || Math.Abs(rounded) < 0.05) rounded = 0;
-        return rounded.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+        double rounded = System.Math.Round(degrees, 1);
+        if (rounded >= 359.95 || System.Math.Abs(rounded) < 0.05) rounded = 0;
+        return rounded.ToString("0.0");
     }
 
-    private static string Coord(double value) => (Math.Abs(value) < 5e-4 ? 0 : value).ToString("0.000");
+    private static string Coord(double value) =>
+        (System.Math.Abs(value) < 5e-4 ? 0 : value).ToString("0.000");
 
-    private string P0Percent() => (Quantum.GetProbabilities().p0 * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+    private string P0Display() => (Quantum.GetProbabilities().p0 * 100).ToString("0.0");
 
-    private string P1Percent() => (Quantum.GetProbabilities().p1 * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+    private string P1Display() => (Quantum.GetProbabilities().p1 * 100).ToString("0.0");
+
+    private string P0Percent() =>
+        (Quantum.GetProbabilities().p0 * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string P1Percent() =>
+        (Quantum.GetProbabilities().p1 * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
 }
+
+

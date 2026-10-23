@@ -117,10 +117,20 @@ billentyűparancsok és a mobilon is használható elrendezés szolgálja.
 
 ### 3.5. Felület
 
-- Sötét és világos téma (a választás a böngészőben megjegyződik).
-- Reszponzív elrendezés: asztali gépen két hasáb, mobilon egy hasáb.
-- Billentyűparancsok: `I` `X` `Y` `Z` `H` `S` `T` (kapu hozzáadása), `Enter` (léptetés),
-  `Backspace` (visszavonás).
+A felület tudatosan **mérnöki eszköz**, nem bemutatóoldal: a vezérlők négy fülön
+(Kezdőállapot / Kapuk / Mentés / Bemutatók) érhetők el, a Bloch-gömb és az élő adatok
+pedig folyamatosan láthatók a jobb oldalon.
+
+- **Egy akcentszín + neutrális szürkeskála**, keret-alapú rétegzés árnyékok helyett,
+  4/8/12/16 px-es térköz-skála, 12–14 px-es produktív tipográfia, sematikus
+  vonalikonok – nincs emoji, nincs színátmenet. (Az elvek az IBM Carbon design
+  rendszer nyilvános irányelveit követik.)
+- **Sötét és világos téma** (a választás a böngészőben megjegyződik).
+- **Reszponzív elrendezés**: asztali gépen két hasáb, mobilon egy hasáb (a gömb felül).
+- A gömb alatt mindig látszik az **állapotvektor** matematikai alakja, a θ/φ szögek,
+  az x, y, z koordináták, a norma és a két mérési valószínűség.
+- **Billentyűparancsok**: `I` `X` `Y` `Z` `H` `S` `T` (kapu hozzáadása),
+  `Enter` (léptetés), `Backspace` (visszavonás).
 - Minden fájl **helyben** van (nincs CDN), így a program internet nélkül is működik.
 
 ![A program sötét témában](kepernyokep_sotet.png)

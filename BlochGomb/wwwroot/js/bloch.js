@@ -1,4 +1,4 @@
-/* Bloch-gömb nézet – Plotly.js vezérlő
+﻿/* Bloch-gömb nézet – Plotly.js vezérlő
  * Animált állapotvektor, nyomvonal, pillanatképek, téma, PNG export.
  */
 (function () {
@@ -47,31 +47,33 @@
     function palette(theme) {
         if (theme === 'light') {
             return {
-                surface: [[0, 'rgba(37,99,235,0.30)'], [1, 'rgba(219,39,119,0.22)']],
-                grid: '#cbd5e1', tick: '#475569', title: '#334155',
-                vector: '#2563eb', point: '#1d4ed8', ring: '#ffffff',
-                trail: 'rgba(14,165,233,0.55)',
-                guide: 'rgba(100,116,139,0.38)'
+                surface: [[0, 'rgba(31,94,255,0.11)'], [1, 'rgba(31,94,255,0.05)']],
+                grid: '#e4e8ee', tick: '#78838f', title: '#4e5967',
+                vector: '#1f5eff', point: '#1f5eff', ring: '#ffffff',
+                trail: 'rgba(31,94,255,0.20)',
+                guide: 'rgba(120,131,143,0.45)',
+                hover: '#ffffff'
             };
         }
         return {
-            surface: [[0, 'rgba(56,189,248,0.36)'], [1, 'rgba(236,72,153,0.28)']],
-            grid: '#334155', tick: '#94a3b8', title: '#cbd5e1',
-            vector: '#38bdf8', point: '#7dd3fc', ring: '#0b1220',
-            trail: 'rgba(56,189,248,0.45)',
-            guide: 'rgba(148,163,184,0.32)'
+            surface: [[0, 'rgba(76,141,255,0.18)'], [1, 'rgba(76,141,255,0.08)']],
+            grid: '#222a33', tick: '#7a8695', title: '#a4aebb',
+            vector: '#4c8dff', point: '#4c8dff', ring: '#14181d',
+            trail: 'rgba(76,141,255,0.22)',
+            guide: 'rgba(122,134,149,0.40)',
+            hover: '#14181d'
         };
     }
 
     function axis(name, c) {
         return {
-            title: { text: name, font: { color: c.title, size: 12 } },
-            range: [-1.12, 1.12],
+            title: { text: name, font: { color: c.title, size: 11 } },
+            range: [-1.05, 1.05],
             showbackground: false,
             gridcolor: c.grid,
             zerolinecolor: c.grid,
             tickcolor: c.grid,
-            tickfont: { color: c.tick, size: 10 },
+            tickfont: { color: c.tick, size: 9 },
             showspikes: false
         };
     }
@@ -83,13 +85,14 @@
             margin: { l: 0, r: 0, t: 0, b: 0 },
             showlegend: false,
             hovermode: 'closest',
+            hoverlabel: { bgcolor: c.hover, bordercolor: c.grid, font: { color: c.title, size: 11 } },
             scene: {
                 bgcolor: 'rgba(0,0,0,0)',
                 xaxis: axis('X', c),
                 yaxis: axis('Y', c),
                 zaxis: axis('Z', c),
                 aspectmode: 'cube',
-                camera: { eye: { x: 1.5, y: 1.5, z: 1.05 }, center: { x: 0, y: 0, z: 0 } }
+                camera: { eye: { x: 1.18, y: 1.02, z: 0.82 }, center: { x: 0, y: 0, z: 0 } }
             }
         };
     }
@@ -100,18 +103,19 @@
         // 0 – a gömb felülete
         data.push({
             type: 'surface', x: SURFACE.x, y: SURFACE.y, z: SURFACE.z,
-            opacity: 0.55, showscale: false, colorscale: c.surface,
-            lighting: { ambient: 0.65, diffuse: 0.55, specular: 0.12, roughness: 0.85 },
+            opacity: 0.9, showscale: false, colorscale: c.surface,
+            lighting: { ambient: 0.9, diffuse: 0.25, specular: 0.05, roughness: 1.0 },
             hoverinfo: 'skip', name: 'Bloch-gömb'
         });
 
         // 1 – bejárt út
         data.push({
-            type: 'scatter3d', mode: 'lines',
+            type: 'scatter3d', mode: 'lines+markers',
             x: trail.map(function (q) { return q.x; }),
             y: trail.map(function (q) { return q.y; }),
             z: trail.map(function (q) { return q.z; }),
-            line: { color: c.trail, width: 3 },
+            line: { color: c.trail, width: 2 },
+            marker: { size: 2, color: c.trail },
             hoverinfo: 'skip', name: 'Nyomvonal'
         });
 
@@ -119,7 +123,7 @@
         data.push({
             type: 'scatter3d', mode: 'lines',
             x: [0, vec.x], y: [0, vec.y], z: [0, vec.z],
-            line: { color: c.vector, width: 8 },
+            line: { color: c.vector, width: 5 },
             name: 'Állapotvektor',
             hovertemplate: 'x: %{x:.3f}<br>y: %{y:.3f}<br>z: %{z:.3f}<extra>Állapotvektor</extra>'
         });
@@ -128,7 +132,7 @@
         data.push({
             type: 'scatter3d', mode: 'markers',
             x: [vec.x], y: [vec.y], z: [vec.z],
-            marker: { size: 8, color: c.point, line: { width: 1, color: c.ring } },
+            marker: { size: 6, color: c.point, line: { width: 1.5, color: c.ring } },
             name: 'Aktuális állapot',
             hovertemplate: '|ψ⟩<br>x: %{x:.3f}<br>y: %{y:.3f}<br>z: %{z:.3f}<extra></extra>'
         });
@@ -137,7 +141,7 @@
         data.push({
             type: 'scatter3d', mode: 'lines',
             x: GUIDE.x, y: GUIDE.y, z: GUIDE.z,
-            line: { color: c.guide, width: 1.5 },
+            line: { color: c.guide, width: 1 },
             hoverinfo: 'skip', name: 'Segédvonalak'
         });
 
@@ -222,13 +226,16 @@
             var distance = Math.abs(from.x - target.x) + Math.abs(from.y - target.y) + Math.abs(from.z - target.z);
             var animate = payload.animate === true && distance > 1e-6;
 
+            // animáció nélkül azonnal a célállapotot rajzoljuk
+            var renderVec = animate ? from : target;
+
             // animáció közben a nyomvonal utolsó (cél)pontját még nem rajzoljuk ki
             var trailForRender = (animate && trail.length > 1) ? trail.slice(0, trail.length - 1) : trail;
 
-            Plotly.react(view.div, buildTraces(payload, c, from, trailForRender), buildLayout(c), {
+            Plotly.react(view.div, buildTraces(payload, c, renderVec, trailForRender), buildLayout(c), {
                 responsive: true,
-                displaylogo: false,
-                modeBarButtonsToRemove: ['toImage', 'hoverClosest3d']
+                displayModeBar: false,
+                staticPlot: false
             });
 
             if (animate) {
@@ -253,7 +260,7 @@
 
         resetView: function () {
             if (!view.div) return;
-            Plotly.relayout(view.div, { 'scene.camera': { eye: { x: 1.5, y: 1.5, z: 1.05 }, center: { x: 0, y: 0, z: 0 } } });
+            Plotly.relayout(view.div, { 'scene.camera': { eye: { x: 1.18, y: 1.02, z: 0.82 }, center: { x: 0, y: 0, z: 0 } } });
         },
 
         exportPng: function (fileName) {
@@ -272,3 +279,6 @@
 
     window.blochgomb = api;
 })();
+
+
+
